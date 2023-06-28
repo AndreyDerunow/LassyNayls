@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const url =
-    "https://script.google.com/macros/s/AKfycbzMPZztuw5QvKMIduwlckpOqAlbbbcX2Xd_TAasp2iv-b2xg5CKWjGwYDOmi9McmAFARg/exec";
+const url = `${import.meta.env.VITE_SHEETS_URL}`;
 
 const http = axios.create({
     baseURL: url

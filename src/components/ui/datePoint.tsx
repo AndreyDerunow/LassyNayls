@@ -1,4 +1,4 @@
-import React from "react";
+
 import { ClientNote } from "../../store/notesSlice";
 
 interface DatePointProps {
