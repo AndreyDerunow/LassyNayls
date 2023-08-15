@@ -1,29 +1,22 @@
 import { RootState } from "./store";
 import { Dispatch, createAction, createSlice } from "@reduxjs/toolkit";
-import sheetService, { Client } from "../services/sheet.service";
+import sheetService from "../services/sheet.service";
 import type { PayloadAction } from "@reduxjs/toolkit";
-
-export interface ClientNote {
-    value: string;
-    date: Date;
-    time: string;
-    x: number;
-    y: number;
-}
-
-interface ClientState {
-    entities: Array<ClientNote>;
-    values: Array<string>;
-    isLoading: boolean;
-    dataLoaded: boolean;
-    error: string;
-}
+import {
+    Client,
+    ClientDate,
+    ClientNote,
+    ClientState,
+    TimeData
+} from "../interfaces/interfaces";
 
 const initialState: ClientState = {
     entities: [],
-    values: [],
+    times: [],
     isLoading: false,
     dataLoaded: false,
+    isTimeLoading: false,
+    timeDataLoaded: false,
     error: ""
 };
 
@@ -39,16 +32,30 @@ const clientsSlice = createSlice({
             state.isLoading = false;
             state.dataLoaded = true;
             state.error = "";
-            const values = action.payload.map((el) => el.value);
-            state.values = values;
         },
         notesDataRequested: (state) => {
+            state.entities = [];
+            state.times = [];
             state.isLoading = true;
         },
         notesDataRequestFailed: (state, action: PayloadAction<string>) => {
             state.isLoading = false;
             state.dataLoaded = false;
             state.error = action.payload;
+        },
+        clientTimesByDateRequested: (state) => {
+            state.times = [];
+            state.isTimeLoading = true;
+            state.timeDataLoaded = false;
+        },
+        clientTimesByDateRecieved: (
+            state,
+            action: PayloadAction<Array<TimeData>>
+        ) => {
+            state.isTimeLoading = false;
+            state.times = action.payload;
+            state.timeDataLoaded = true;
+            state.error = "";
         }
     }
 });
@@ -56,6 +63,8 @@ const clientsSlice = createSlice({
 const { reducer: notesReducer, actions } = clientsSlice;
 
 const {
+    clientTimesByDateRequested,
+    clientTimesByDateRecieved,
     clientNoteAdded,
     notesDataRecieved,
     notesDataRequestFailed,
@@ -64,33 +73,51 @@ const {
 
 const clientNoteAddRequested = createAction("clients/clientNoteAddRequested");
 
-//Todo: убрать эни
-export const addClientNote = (data: Client) => async (dispatch: Dispatch) => {
-    dispatch(clientNoteAddRequested());
-    try {
-        const content: any = await sheetService.addNote(data);
-        // dispatch(clientNoteAdded(content));
-        return content;
-    } catch (e) {
-        console.log(e);
-    }
-};
-
-export const loadNotesList = () => async (dispatch: Dispatch) => {
-    dispatch(notesDataRequested());
-    try {
-        const { data } = await sheetService.getData();
-        dispatch(notesDataRecieved(data));
-        return data;
-    } catch (e) {
-        if (e instanceof Error) {
-            notesDataRequestFailed(e.message);
+export const addClientNote =
+    (noteData: Client) => async (dispatch: Dispatch) => {
+        dispatch(clientNoteAddRequested());
+        try {
+            const { data } = await sheetService.addNote(noteData);
+            // dispatch(clientNoteAdded(content));
+            return data;
+        } catch (e) {
+            console.log(e);
         }
-    }
-};
+    };
+
+export const getTimesByDate =
+    (dataObj: ClientDate) => async (dispatch: Dispatch) => {
+        dispatch(clientTimesByDateRequested());
+        try {
+            const { data } = await sheetService.getTimesByDate(dataObj);
+            const times = data.map((el: TimeData) => ({
+                ...el,
+                timeString: el.timeString.split("-")[0]
+            }));
+            dispatch(clientTimesByDateRecieved(times));
+            return times;
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+export const loadNotesList =
+    (dataJson: string) => async (dispatch: Dispatch) => {
+        dispatch(notesDataRequested());
+        try {
+            const { data } = await sheetService.getData(dataJson);
+            dispatch(notesDataRecieved(data));
+            return data;
+        } catch (e) {
+            if (e instanceof Error) {
+                notesDataRequestFailed(e.message);
+            }
+        }
+    };
 export const getNotesList = () => (state: RootState) => state.notes.entities;
 export const getNotesLoadingStatus = () => (state: RootState) =>
     state.notes.isLoading;
 export const getNotesLoaded = () => (state: RootState) => state.notes.isLoading;
 export const getNotesError = () => (state: RootState) => state.notes.error;
+export const getTimesArr = () => (state: RootState) => state.notes.times;
 export default notesReducer;
