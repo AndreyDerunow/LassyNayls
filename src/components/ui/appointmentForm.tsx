@@ -24,7 +24,7 @@ import {
     AppointForm,
     AppointmentWrapper,
     InputWrapper
-} from "../styled/styledComponents";
+} from "../../styled/styledComponents";
 registerLocale("ru", ru);
 
 const AppointmentInput = styled.input`
